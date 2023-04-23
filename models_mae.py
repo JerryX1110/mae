@@ -195,9 +195,9 @@ class MaskedAutoencoderViT(nn.Module):
         # masking: length -> length * mask_ratio
         
         if masking_strategy !=None:           
-            if self.masking_strategy == 'random':
+            if masking_strategy == 'random':
                 x, mask, ids_restore = self.random_masking(x, mask_ratio)
-            elif self.masking_strategy == 'center':
+            elif masking_strategy == 'center':
                 x, mask, ids_restore = self.center_masking(x, mask_ratio)
         else:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
