@@ -134,9 +134,7 @@ class MaskedAutoencoderViT(nn.Module):
         mask = mask.flatten()
         ids = np.argsort(mask)
         mask_pix_num = int((1-mask).sum())
-        print("mask_pix_num", mask_pix_num)
         ids_keep = ids[:mask_pix_num]
-        print("ids_keep", ids_keep)
         return ids, mask, ids_keep
     
     def center_masking(self, x, mask_ratio):
@@ -147,9 +145,8 @@ class MaskedAutoencoderViT(nn.Module):
         N, L, D = x.shape  # batch, length, dim
         patch_size = np.int(np.sqrt(L))
         ids, mask, ids_keep = self.gen_center_mask((patch_size,patch_size), mask_ratio)
-        ids_shuffle = (torch.tensor(np.int64(np.linspace(0,L-1,L))).unsqueeze(0).repeat(N,1))          
-        ids_restore = ids_shuffle
-
+        ids_shuffle = torch.tensor(ids).unsqueeze(0).repeat(N,1)         
+        ids_restore = torch.argsort(ids_shuffle, dim=1) #ids_shuffle
         mask = torch.tensor(mask).unsqueeze(0).repeat(N,1).to(x.device)
 
         x_masked = torch.gather(x, dim=1, index=torch.tensor(ids_keep).unsqueeze(-1).repeat(1, 1, D))
