@@ -25,7 +25,7 @@ class MaskedAutoencoderViT(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_chans=3,
                  embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False):
+                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False, masking_strategy='random'):
         super().__init__()
 
         # --------------------------------------------------------------------------
@@ -59,6 +59,8 @@ class MaskedAutoencoderViT(nn.Module):
         # --------------------------------------------------------------------------
 
         self.norm_pix_loss = norm_pix_loss
+        
+        self.masking_strategy = masking_strategy
 
         self.initialize_weights()
 
@@ -119,6 +121,40 @@ class MaskedAutoencoderViT(nn.Module):
         x = torch.einsum('nhwpqc->nchpwq', x)
         imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
         return imgs
+    
+    def gen_center_mask(self, emb_shape=(4,4), mask_ratio=0.5):
+        mask = np.linspace(1,1,emb_shape[0]*emb_shape[1]).reshape(emb_shape)
+        quarter_num_x = int(emb_shape[0]*mask_ratio/2)
+        quarter_num_y = int(emb_shape[1]*mask_ratio/2)
+        mask[0:quarter_num_x,:]=0
+        mask[emb_shape[0]-quarter_num_x:,:]=0
+        mask[:, 0:quarter_num_x]=0
+        mask[:, emb_shape[1]-quarter_num_x:]=0
+        mask = mask.flatten()
+        ids = np.argsort(mask)
+        mask_pix_num = int((1-mask).sum())
+        ids_keep = ids[:mask_pix_num]
+        return ids, mask, ids_keep
+    
+     def center_masking(self, x, mask_ratio):
+        """
+        Perform per-sample center masking
+        x: [N, L, D], sequence
+        """
+        N, L, D = x.shape  # batch, length, dim
+        patch_size = np.int(np.sqrt(L))
+        ids, mask, ids_keep = gen_center_mask((patch_size,patch_size), mask_ratio)
+        ids_shuffle = (torch.tensor(np.int64(np.linspace(0,L-1,L))).unsqueeze(0).repeat(N,1))          
+        ids_restore = ids_shuffle
+
+        mask = torch.tensor(mask).unsqueeze(0).repeat(N,1).to(x.device)
+
+        x_masked = torch.gather(x, dim=1, index=torch.tensor(ids_keep).unsqueeze(-1).repeat(1, 1, D))
+        # generate the binary mask: 0 is keep, 1 is remove  
+        mask = torch.ones([N, L], device=x.device)
+        mask[:, ids_keep] = 0
+        mask = torch.gather(mask, dim=1, index=ids_restore)
+        return x_masked, mask, ids_restore
 
     def random_masking(self, x, mask_ratio):
         """
@@ -127,6 +163,7 @@ class MaskedAutoencoderViT(nn.Module):
         x: [N, L, D], sequence
         """
         N, L, D = x.shape  # batch, length, dim
+        print("mask L", L)
         len_keep = int(L * (1 - mask_ratio))
         
         noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]
@@ -146,7 +183,8 @@ class MaskedAutoencoderViT(nn.Module):
         mask = torch.gather(mask, dim=1, index=ids_restore)
 
         return x_masked, mask, ids_restore
-
+   
+    
     def forward_encoder(self, x, mask_ratio):
         # embed patches
         x = self.patch_embed(x)
@@ -155,8 +193,11 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
-        x, mask, ids_restore = self.random_masking(x, mask_ratio)
-
+        if self.masking_strategy == 'random':
+            x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        elif self.masking_strategy == 'center':
+            x, mask, ids_restore = self.center_masking(x, mask_ratio)
+            
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
         cls_tokens = cls_token.expand(x.shape[0], -1, -1)
