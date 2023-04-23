@@ -189,7 +189,7 @@ class MaskedAutoencoderViT(nn.Module):
         """
         N, L, D = x.shape  # batch, length, dim
         patch_size = np.int(np.sqrt(L))
-        ids, mask, ids_keep = self.gen_center_mask((patch_size,patch_size), mask_ratio)
+        ids, mask, ids_keep = self.gen_downright_mask((patch_size,patch_size), mask_ratio)
         ids_shuffle = torch.tensor(ids).unsqueeze(0).repeat(N,1)         
         ids_restore = torch.argsort(ids_shuffle, dim=1) #ids_shuffle
         mask = torch.tensor(mask).unsqueeze(0).repeat(N,1).to(x.device)
