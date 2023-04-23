@@ -152,7 +152,7 @@ class MaskedAutoencoderViT(nn.Module):
         x_masked = torch.gather(x, dim=1, index=torch.tensor(ids_keep).unsqueeze(-1).repeat(1, 1, D))
         # generate the binary mask: 0 is keep, 1 is remove  
         mask = torch.ones([N, L], device=x.device)
-        mask[:, ids_keep] = 0
+        mask[:, :len(ids_keep)] = 0
         mask = torch.gather(mask, dim=1, index=ids_restore)
         return x_masked, mask, ids_restore
 
