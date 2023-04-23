@@ -145,7 +145,7 @@ class MaskedAutoencoderViT(nn.Module):
         """
         N, L, D = x.shape  # batch, length, dim
         patch_size = np.int(np.sqrt(L))
-        ids, mask, ids_keep = gen_center_mask((patch_size,patch_size), mask_ratio)
+        ids, mask, ids_keep = self.gen_center_mask((patch_size,patch_size), mask_ratio)
         ids_shuffle = (torch.tensor(np.int64(np.linspace(0,L-1,L))).unsqueeze(0).repeat(N,1))          
         ids_restore = ids_shuffle
 
@@ -196,7 +196,8 @@ class MaskedAutoencoderViT(nn.Module):
 
         # masking: length -> length * mask_ratio
         
-        if masking_strategy !=None:           
+        if masking_strategy !=None:    
+            print("right path")
             if masking_strategy == 'random':
                 x, mask, ids_restore = self.random_masking(x, mask_ratio)
                 
@@ -265,6 +266,7 @@ class MaskedAutoencoderViT(nn.Module):
         return loss
 
     def forward(self, imgs, mask_ratio=0.75, masking_strategy=None):
+        print("masking_strategy", masking_strategy)
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio, masking_strategy)
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
         loss = self.forward_loss(imgs, pred, mask)
