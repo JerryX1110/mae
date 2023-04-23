@@ -133,7 +133,9 @@ class MaskedAutoencoderViT(nn.Module):
         mask = mask.flatten()
         ids = np.argsort(mask)
         mask_pix_num = int((1-mask).sum())
+        print("mask_pix_num", mask_pix_num)
         ids_keep = ids[:mask_pix_num]
+        print("ids_keep", ids_keep)
         return ids, mask, ids_keep
     
     def center_masking(self, x, mask_ratio):
@@ -197,8 +199,13 @@ class MaskedAutoencoderViT(nn.Module):
         if masking_strategy !=None:           
             if masking_strategy == 'random':
                 x, mask, ids_restore = self.random_masking(x, mask_ratio)
+                
             elif masking_strategy == 'center':
                 x, mask, ids_restore = self.center_masking(x, mask_ratio)
+                
+                print("mask",mask)
+                print("ids_restore",ids_restore)
+                
         else:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         # append cls token
