@@ -136,7 +136,7 @@ class MaskedAutoencoderViT(nn.Module):
         ids_keep = ids[:mask_pix_num]
         return ids, mask, ids_keep
     
-     def center_masking(self, x, mask_ratio):
+    def center_masking(self, x, mask_ratio):
         """
         Perform per-sample center masking
         x: [N, L, D], sequence
