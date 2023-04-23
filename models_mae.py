@@ -187,7 +187,7 @@ class MaskedAutoencoderViT(nn.Module):
         return x_masked, mask, ids_restore
    
     
-    def forward_encoder(self, x, mask_ratio, masking_strategy=None):
+    def forward_encoder(self, x, mask_ratio, masking_strategy='random'):
         # embed patches
         x = self.patch_embed(x)
 
@@ -195,20 +195,14 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
-        
-        if masking_strategy !=None:    
-            print("right path")
-            if masking_strategy == 'random':
-                x, mask, ids_restore = self.random_masking(x, mask_ratio)
-                
-            elif masking_strategy == 'center':
-                x, mask, ids_restore = self.center_masking(x, mask_ratio)
-                
-                print("mask",mask)
-                print("ids_restore",ids_restore)
-                
-        else:
+        masking_strategy = 'center'
+
+        if masking_strategy == 'random':
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        elif masking_strategy == 'center':
+            print("go on center masking")
+            x, mask, ids_restore = self.center_masking(x, mask_ratio)
+
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
         cls_tokens = cls_token.expand(x.shape[0], -1, -1)
