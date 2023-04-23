@@ -143,7 +143,7 @@ class MaskedAutoencoderViT(nn.Module):
         ids_keep = ids[:mask_pix_num]
         return ids, mask, ids_keep
     
-    def gen_downright_mask(emb_shape=(4,4), mask_ratio=0.5):
+    def gen_downright_mask(self, emb_shape=(4,4), mask_ratio=0.5):
         mask = np.linspace(1,1,emb_shape[0]*emb_shape[1]).reshape(emb_shape)
         quarter_num_x = int(emb_shape[0]*mask_ratio)
         quarter_num_y = int(emb_shape[1]*mask_ratio)
