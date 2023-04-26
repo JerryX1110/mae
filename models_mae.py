@@ -232,7 +232,17 @@ class MaskedAutoencoderViT(nn.Module):
     
     def forward_encoder(self, x, mask_ratio, masking_strategy='random', given_mask=None):
         # embed patches
-       
+        yy = out["stem"] = nn.Conv(
+          1024, 16, strides=16,
+          kernel_init=nn.initializers.xavier_uniform(),
+          #kernel_init=nn.initializers.kaiming_uniform(),
+          bias_init=nn.initializers.zeros,
+          padding="VALID", name="embedding")(x)    
+        
+        print("stem jnp", yy)
+        print("stem jnp", yy.size())        
+        
+        
         x = self.patch_embed(x)
         
         print("stem", x)
@@ -244,6 +254,8 @@ class MaskedAutoencoderViT(nn.Module):
         print("with_pos", x)
         print("with_pos", x.size())
         
+
+    
         # masking: length -> length * mask_ratio
 
         if masking_strategy == 'random':
