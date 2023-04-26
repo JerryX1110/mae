@@ -226,17 +226,24 @@ class MaskedAutoencoderViT(nn.Module):
         mask[:, :len_keep] = 0
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
-
+        
         return x_masked, mask, ids_restore
    
     
-    def forward_encoder(self, x, mask_ratio, masking_strategy='random'):
+    def forward_encoder(self, x, mask_ratio, masking_strategy='random', given_mask=None):
         # embed patches
+       
         x = self.patch_embed(x)
+        
+        print("stem", x)
+        print("stem", x.size())
 
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]
 
+        print("with_pos", x)
+        print("with_pos", x.size())
+        
         # masking: length -> length * mask_ratio
 
         if masking_strategy == 'random':
@@ -245,7 +252,8 @@ class MaskedAutoencoderViT(nn.Module):
             x, mask, ids_restore = self.center_masking(x, mask_ratio)
         elif masking_strategy == 'downright':
             x, mask, ids_restore = self.downright_masking(x, mask_ratio)  
- 
+            
+         
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
         cls_tokens = cls_token.expand(x.shape[0], -1, -1)
